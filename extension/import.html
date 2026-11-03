@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Crate Digger — Import</title>
+  <link rel="icon" href="icons/icon48.png">
+  <style>
+    :root { --bg: #121212; --panel: #1b1b1b; --text: #f1ede4; --muted: #8d877c; --accent: #f2a33a; --ok: #56B4E9; --bad: #E58FC4; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { max-width: 640px; margin: 48px auto; padding: 0 20px; }
+    h1 { display: flex; align-items: center; gap: 10px; font-size: 22px; margin: 0 0 6px; }
+    h1 img { width: 30px; height: 30px; }
+    p { color: var(--muted); margin: 0 0 18px; }
+    .drop { border: 2px dashed #444; border-radius: 14px; padding: 40px 20px; text-align: center; cursor: pointer;
+      background: var(--panel); transition: border-color .15s, background .15s; }
+    .drop:hover, .drop.over { border-color: var(--accent); background: #211b12; }
+    .drop strong { color: var(--accent); }
+    input[type=file] { display: none; }
+    ol { color: var(--muted); padding-left: 20px; margin: 22px 0 0; }
+    ol li { margin-bottom: 6px; }
+    #result { margin-top: 22px; }
+    .card { background: var(--panel); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; border-left: 4px solid var(--accent); }
+    .card.bad { border-left: 7px double var(--bad); background-image: repeating-linear-gradient(135deg, rgba(229,143,196,.08) 0 6px, transparent 6px 12px); }
+    .card table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
+    .card td { padding: 4px 0; border-top: 1px solid #2a2a2a; }
+    .card td:last-child { text-align: right; color: var(--muted); }
+    .new { background: var(--ok); color: #06243a; font-weight: 700; border-radius: 4px; padding: 0 5px; font-size: 11px; margin-left: 6px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1><img src="icons/icon48.png" alt="">Import playlists</h1>
+    <p>Drop in a CSV exported from Crate Digger (any version) or a .json backup. Tracks go into the playlist with the same name — new playlists are created as needed, and anything already there is skipped, so it's safe to import the same file twice.</p>
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept=".csv,.json,text/csv,application/json" multiple>
+      <div><strong>Choose files</strong> or drag them here</div>
+    </label>
+    <ol>
+      <li>Moving from an older install? In the old version open ⚙ Settings → <b>Export all playlists (one CSV)</b>.</li>
+      <li>Drop that file here — every playlist comes across with its name.</li>
+      <li>A CSV without a Playlist column (single-playlist export) goes into a playlist named after the file.</li>
+    </ol>
+    <div id="result"></div>
+  </main>
+  <script src="storage.js"></script>
+  <script src="import.js"></script>
+</body>
+</html>

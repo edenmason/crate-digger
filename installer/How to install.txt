@@ -1,0 +1,38 @@
+CRATE DIGGER: HOW TO INSTALL
+============================
+
+You need: a Mac, Google Chrome, and about 2 minutes.
+
+1. Copy this whole folder onto the Mac (or run it straight from the drive it's on).
+
+2. Double-click "Install Crate Digger".
+   - If the Mac says it can't check it for malicious software:
+     open System Settings → Privacy & Security, scroll down and click "Open Anyway",
+     then double-click it again.
+   - If it asks whether Terminal can access files on a removable volume, click Allow.
+
+3. Answer the pop-ups. It asks for a Soulseek username and password.
+   If you don't have one, make one up; it's created the first time it's used.
+   (Don't use the same login as a Soulseek app you already use.)
+
+4. Chrome opens its Extensions page and a Finder window shows the Crate Digger folder:
+   a) switch on "Developer mode" (top right of the Chrome page)
+   b) drag the highlighted "Crate Digger extension" folder onto the Chrome page
+   c) click the puzzle-piece icon in Chrome's toolbar and pin Crate Digger
+
+That's it. Click the Crate Digger icon in Chrome: it opens on the side of the window.
+
+USING IT
+- Dig tab: save tracks from Bandcamp, SoundCloud, YouTube and Discogs into playlists.
+- Download tab: press ⬇ on a track, or "Download playlist". Files go to
+  Music → Crate Digger Downloads → (today's date).
+- Sockseek, the downloader, runs by itself in the background whenever the Mac is on.
+  If the Download tab ever says it isn't running, double-click "Restart Sockseek"
+  (your home folder → Applications → Crate Digger → Sockseek).
+
+UPDATES: Crate Digger keeps itself up to date. New versions download by themselves
+(every few hours) and you'll see "✓ Crate Digger updated" in the panel.
+
+CHANGING THE SOULSEEK LOGIN: run "Install Crate Digger" again. Playlists are kept.
+REMOVING IT: double-click "Uninstall Crate Digger" (home folder → Applications →
+Crate Digger), then remove it in Chrome's Extensions page. Downloaded music is kept.

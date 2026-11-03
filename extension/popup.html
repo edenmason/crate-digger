@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <div class="brand"><img src="icons/icon48.png" alt=""><span>Crate Digger</span></div>
+    <div class="pl-row">
+      <select id="plSelect" title="Active playlist"></select>
+      <button id="plNew" class="icon" title="New playlist">＋</button>
+      <button id="plRename" class="icon" title="Rename playlist">✎</button>
+      <button id="plDelete" class="icon" title="Delete playlist">🗑</button>
+    </div>
+    <nav class="tabs">
+      <button data-tab="dig" class="on">Dig</button>
+      <button data-tab="dl">Download <span id="dlCount" class="count hidden"></span></button>
+    </nav>
+  </header>
+
+  <div id="tab-dig" class="tab">
+    <section id="page">
+      <div class="sec-head">
+        <span>On this page <span id="pageSource" class="badge"></span></span>
+        <span class="head-btns">
+          <button id="toggleAll" class="link hidden">Select all</button>
+          <button id="rescan" class="link" title="Read the page again (e.g. after the track changes)">↻ Rescan</button>
+        </span>
+      </div>
+      <div id="pageItems" class="items"><div class="muted">Reading page…</div></div>
+      <div class="row">
+        <button id="addSelected" class="primary">Add selected</button>
+        <button id="addManual" class="ghost">Add manually</button>
+      </div>
+    </section>
+
+    <section id="list">
+      <div class="sec-head">
+        <span id="plTitle">Playlist</span>
+        <span class="head-btns"><button id="tidyBtn" class="link" title="Tidy up messy titles (cat numbers, [labels], junk) so Soulseek finds more">✎ Tidy titles</button></span>
+        <input id="filter" type="search" placeholder="Filter…">
+      </div>
+      <div id="tracks" class="tracks"></div>
+    </section>
+
+    <footer>
+      <button id="exportCsv" class="primary">Export CSV</button>
+      <button id="copyQueries" title="Copy one Soulseek search per line">Copy Soulseek searches</button>
+      <button id="settingsBtn" class="icon" title="Settings">⚙</button>
+    </footer>
+  </div>
+
+  <div id="tab-dl" class="tab hidden">
+    <section id="ssStatus" class="ss-status"></section>
+    <section class="dl-opts">
+      <div class="dl-folder">
+        <span class="lbl">Saving to</span>
+        <code id="dlFolder" title="Change this in ⚙ Settings"></code>
+      </div>
+      <label class="dl-q"><span class="lbl">Quality</span><select id="dlQuality"></select></label>
+      <div class="row">
+        <button id="dlPlaylist" class="primary">Download playlist</button>
+        <button id="dlClear" class="ghost" title="Remove completed downloads from this list (the files stay on your drive)">Clear completed</button>
+        <button id="dlSettings" class="icon" title="Download settings">⚙</button>
+      </div>
+    </section>
+    <section id="dlListWrap">
+      <div class="sec-head"><span id="dlHead">Downloads</span></div>
+      <div id="dlList" class="dl-list"></div>
+    </section>
+  </div>
+
+  <div id="modal" class="modal hidden"><div class="sheet" id="sheet"></div></div>
+  <div id="snack" class="snack hidden"></div>
+
+  <script src="storage.js"></script>
+  <script src="sockseek.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# personal data never goes in the repo
+seed-backup.json
+defaults.json
+*.zip
+dist/
+.DS_Store
+._*

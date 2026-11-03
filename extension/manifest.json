@@ -1,0 +1,76 @@
+{
+  "manifest_version": 3,
+  "name": "Crate Digger",
+  "version": "2.3.0",
+  "description": "Dig on Bandcamp, SoundCloud, YouTube and Discogs, save tracks into playlists, and download them in lossless quality through Sockseek.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArPv5tfb9fbq3oBLo+NNdL3RPNdBcWP1PtD2VB1LULVYQeCRKZq5S66bTot5Kck/nHOFBQPfW4VPGdMAZcIVVh8PfdHbufMf5ok5jHnW9xsvc3d1CjWl1xOH1nBeUx9H9No21tV3+rmWI/pDXWUolMyQ0qy7ChGHltbTA3CwosuXNUu/xPKlXSZHIXtph1N1IXscLhM0uqJsrj1H9ewqQioYmhXamegjw5o/1iynEuF9G4uxRO/Rgv9DLoVzQOfKfk4exaOKTmutcyeO2TV/vqn5Q/9x4Z9fGycboKy/PciUeuEhPaSH5D9Pt8pxiGR1IhyfgfPRxdfq9G0RgPnZrqwIDAQAB",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "activeTab",
+    "scripting",
+    "contextMenus",
+    "sidePanel",
+    "alarms"
+  ],
+  "host_permissions": [
+    "*://*.bandcamp.com/*",
+    "*://soundcloud.com/*",
+    "*://*.soundcloud.com/*",
+    "*://*.youtube.com/*",
+    "*://*.discogs.com/*",
+    "https://api.discogs.com/*",
+    "http://127.0.0.1/*",
+    "http://localhost/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "popup.html"
+  },
+  "action": {
+    "default_title": "Crate Digger",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.bandcamp.com/*",
+        "*://soundcloud.com/*",
+        "*://*.youtube.com/*",
+        "*://*.discogs.com/*"
+      ],
+      "js": [
+        "storage.js",
+        "extractors.js",
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+D"
+      },
+      "description": "Open Crate Digger"
+    },
+    "save-current": {
+      "suggested_key": {
+        "default": "Alt+Shift+S"
+      },
+      "description": "Save the current track to the active playlist"
+    }
+  }
+}

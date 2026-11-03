@@ -1,13 +1,8 @@
 {
-  "extension": "2.3.0",
+  "extension": "2.4.0",
   "sockseek": "3.0.6",
-  "updater": "1",
+  "updater": "2",
   "notes": [
-    "✓ Tracks you've already saved are marked: the floating button turns into ✓, the toolbar icon shows a ✓, and the Discogs viewer ticks saved rows",
-    "⬇ Check names before downloading: a quick box for messy names, and a spreadsheet-style review page for whole playlists",
-    "✎ Tidy titles: cat numbers, [labels], years and junk move out of titles so Soulseek finds more",
-    "Downloads list: one row per track, in ⚠ Needs attention, ⬇ In progress and ✓ Completed",
-    "Colour-blind friendly: every status has an icon, a word and its own shape",
-    "Crate Digger now updates itself from GitHub"
+    "⟳ Check for updates button in ⚙ Settings: see if there's a newer version and install it straight away"
   ]
 }

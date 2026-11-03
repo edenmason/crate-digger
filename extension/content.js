@@ -109,8 +109,10 @@
   let viewerOn = true, viewerPath = '', viewerOpen = false, viewerResult = null;
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   const link = (cls, text, href, title) => { const a = el('a', cls, text); a.href = href; a.target = '_blank'; a.rel = 'noopener'; if (title) a.title = title; return a; };
-  const ytSearch = it => 'https://www.youtube.com/results?search_query=' +
-    encodeURIComponent(`${it.artist || ''} ${it.title || it.release || ''}`.replace(/[\[\](){}"]/g, ' ').replace(/\s+/g, ' ').trim());
+  // ▶ links follow the YouTube / YouTube Music toggle in the panel
+  const ytTarget = () => cdState?.settings?.ytTarget === 'music' ? 'music' : 'youtube';
+  const ytName = () => ytTarget() === 'music' ? 'YouTube Music' : 'YouTube';
+  const ytSearch = it => CD.ytSearchUrl(`${it.artist || ''} ${it.title || it.release || ''}`.replace(/[\[\](){}"]/g, ' ').replace(/\s+/g, ' ').trim(), ytTarget());
 
   function renderViewer(r) {
     build();
@@ -126,7 +128,7 @@
     const body = el('div', 'vbody');
     const top = el('div', 'vtop');
     if (r.allUrl) top.append(link('', `▶ Play all on YouTube (${r.videos.length})`, r.allUrl, 'Opens every video from this release as a YouTube queue'));
-    else top.append(link('', '▶ Search release on YouTube', release ? ytSearch({ artist: release.artist, title: release.release }) : '#'));
+    else top.append(link('', `${ytTarget() === 'music' ? '♫' : '▶'} Search release on ${ytName()}`, release ? ytSearch({ artist: release.artist, title: release.release }) : '#'));
     const relWhere = release ? CD.findSaved(cdState, release) : [];
     const saveAll = el('button', relWhere.length ? 'saved' : '', relWhere.length ? CD.savedLabel(relWhere) : '+ Save release');
     if (relWhere.length) saveAll.title = 'Already in: ' + relWhere.map(w => w.name).join(', ');
@@ -141,8 +143,8 @@
       if (sub) { title.append(' '); title.append(el('small', '', sub)); }
       title.title = t.videoTitle ? `YouTube video: ${t.videoTitle}` : `${t.artist} – ${t.title}`;
       r.append(title);
-      if (t.video) r.append(link('vplay', '▶', t.video, t.videoTitle ? `Play “${t.videoTitle}” on YouTube` : 'Play on YouTube'));
-      else r.append(link('vsearch', '⌕', ytSearch(t), 'No video on Discogs — search YouTube'));
+      if (t.video) r.append(link('vplay', ytTarget() === 'music' ? '♫' : '▶', CD.ytOpen(t.video, ytTarget()), t.videoTitle ? `Play “${t.videoTitle}” on ${ytName()}` : `Play on ${ytName()}`));
+      else r.append(link('vsearch', '⌕', ytSearch(t), `No video on Discogs: search ${ytName()}`));
       r.append(link('vsc', '☁', 'https://soundcloud.com/search/sounds?q=' +
         encodeURIComponent(`${t.artist || ''} ${t.title || ''}`.replace(/[\[\](){}"]/g, ' ').replace(/\s+/g, ' ').trim()), 'Search on SoundCloud'));
       const where = CD.findSaved(cdState, t);

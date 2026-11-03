@@ -5,7 +5,7 @@ var CD = globalThis.CD || (() => {
   const DEFAULT_SETTINGS = {
     discogsToken: '', showButton: true, showViewer: true, openIn: 'panel',
     // Sockseek downloads
-    ssUrl: 'http://127.0.0.1:5030', dlBase: '/Volumes/Seagate/USB Music', dlDateFolders: true, dlQuality: 'lossless', ssHint: '',
+    ssUrl: 'http://127.0.0.1:5030', dlBase: '/Volumes/Seagate/USB Music', dlDateFolders: true, dlQuality: 'lossless', ssHint: '', ytTarget: 'youtube',
     checkSingle: 'messy', checkPlaylist: true   // check names before downloading: 'messy' | 'always' | 'never'
   };
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -229,12 +229,20 @@ var CD = globalThis.CD || (() => {
 
   /* Best YouTube link for a track: the exact video if we know it, otherwise a YouTube search.
      Always youtube.com itself, so YouTube Premium applies (no ads). */
-  function youtubeLink(t) {
-    if (t.video) return t.video;
-    if (/^https?:\/\/(www\.|m\.)?youtube\.com\/watch/.test(t.url || '')) return t.url;
-    if (/^https?:\/\/music\.youtube\.com\/watch/.test(t.url || '')) return t.url;
-    const q = searchQuery(t);
-    return q ? 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q) : '';
+  /* where ▶ goes: 'youtube' (youtube.com) or 'music' (YouTube Music). Both use your Premium. */
+  const ytId = u => (String(u || '').match(/(?:[?&]v=|youtu\.be\/|\/embed\/|\/shorts\/)([\w-]{11})/) || [])[1] || '';
+  function ytOpen(url, target) {               // an exact video, on whichever site you chose
+    const id = ytId(url);
+    if (!id || /watch_videos/.test(url)) return url; // a "play all" queue only works on youtube.com
+    return target === 'music' ? `https://music.youtube.com/watch?v=${id}` : `https://www.youtube.com/watch?v=${id}`;
+  }
+  const ytSearchUrl = (q, target) => !q ? '' : target === 'music'
+    ? 'https://music.youtube.com/search?q=' + encodeURIComponent(q)
+    : 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q);
+  function youtubeLink(t, target = 'youtube') {
+    if (t.video) return ytOpen(t.video, target);
+    if (/^https?:\/\/((www|m|music)\.)?youtube\.com\/watch/.test(t.url || '')) return ytOpen(t.url, target);
+    return ytSearchUrl(searchQuery(t), target);
   }
 
   /* SoundCloud track search for artist + title */
@@ -363,6 +371,6 @@ var CD = globalThis.CD || (() => {
   }
 
   return { tidy, tidyTracks, updateTracks, load, addItems, isSaved, findSaved, savedLabel, sameItem, createPlaylist, renamePlaylist, deletePlaylist, setActive, updateTrack,
-    removeTrack, saveSettings, setDownload, lengthSecs, fmtLength, searchQuery, youtubeLink, soundcloudLink, toCSV, ensureContent, FIELDS,
+    removeTrack, saveSettings, setDownload, lengthSecs, fmtLength, searchQuery, youtubeLink, ytOpen, ytSearchUrl, soundcloudLink, toCSV, ensureContent, FIELDS,
     parseCSV, csvToGroups, jsonToGroups, importGroups, backupJSON };
 })();

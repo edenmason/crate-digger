@@ -118,6 +118,13 @@ function updateAddBtn() {
 }
 
 const iconBtn = (sym, title, fn) => h('button', { title, onclick: fn }, sym);
+function renderYtToggle() {
+  const music = state.settings.ytTarget === 'music';
+  document.querySelectorAll('#ytToggle button').forEach(b => {
+    const on = (b.dataset.yt === 'music') === music;
+    b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
+  });
+}
 function renderTracks() {
   const pl = active();
   const f = $('filter').value.trim().toLowerCase();
@@ -138,8 +145,9 @@ function renderTracks() {
     h('div', { class: 'tk-act' },
       h('button', { class: 'dlb', title: t.dl?.state === 'done' ? 'Already downloaded. Click to download again' : 'Download with Sockseek',
         onclick: () => startDownloads([t], { force: true }) }, '⬇'),
-      h('button', { class: 'yt', title: t.video || /youtube\.com\/watch/.test(t.url) ? 'Play on YouTube' : 'Search on YouTube',
-        onclick: () => chrome.tabs.create({ url: CD.youtubeLink(t) }) }, '▶'),
+      (() => { const music = state.settings.ytTarget === 'music', where = music ? 'YouTube Music' : 'YouTube';
+        return h('button', { class: music ? 'yt ytm' : 'yt', title: (t.video || /youtube\.com\/watch/.test(t.url) ? 'Play on ' : 'Search on ') + where,
+          onclick: () => chrome.tabs.create({ url: CD.youtubeLink(t, state.settings.ytTarget) }) }, music ? '♫' : '▶'); })(),
       h('button', { class: 'sc', title: 'Search on SoundCloud',
         onclick: () => chrome.tabs.create({ url: CD.soundcloudLink(t) }) }, '☁'),
       t.url ? iconBtn('↗', 'Open where you found it', () => chrome.tabs.create({ url: t.url })) : null,
@@ -154,6 +162,7 @@ async function refresh() {
   state = await CD.load();
   SS.setBase(state.settings.ssUrl);
   renderPlaylists();
+  renderYtToggle();
   renderTracks();
   if (page) renderPage();
   if (curTab === 'dl') renderDownloads();
@@ -300,6 +309,7 @@ $('copyQueries').addEventListener('click', async () => {
 });
 $('settingsBtn').addEventListener('click', openSettings);
 $('tidyBtn').addEventListener('click', openTidy);
+document.querySelectorAll('#ytToggle button').forEach(b => b.addEventListener('click', () => CD.saveSettings({ ytTarget: b.dataset.yt })));
 
 chrome.storage.onChanged.addListener((ch, area) => {
   if (area !== 'local') return;

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Crate Digger",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "Dig on Bandcamp, SoundCloud, YouTube and Discogs, save tracks into playlists, and download them in lossless quality through Sockseek.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArPv5tfb9fbq3oBLo+NNdL3RPNdBcWP1PtD2VB1LULVYQeCRKZq5S66bTot5Kck/nHOFBQPfW4VPGdMAZcIVVh8PfdHbufMf5ok5jHnW9xsvc3d1CjWl1xOH1nBeUx9H9No21tV3+rmWI/pDXWUolMyQ0qy7ChGHltbTA3CwosuXNUu/xPKlXSZHIXtph1N1IXscLhM0uqJsrj1H9ewqQioYmhXamegjw5o/1iynEuF9G4uxRO/Rgv9DLoVzQOfKfk4exaOKTmutcyeO2TV/vqn5Q/9x4Z9fGycboKy/PciUeuEhPaSH5D9Pt8pxiGR1IhyfgfPRxdfq9G0RgPnZrqwIDAQAB",
   "minimum_chrome_version": "116",

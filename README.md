@@ -7,8 +7,9 @@ A Chrome extension for digging on Bandcamp, SoundCloud, YouTube and Discogs: sav
 | Folder | What it is |
 |---|---|
 | `extension/` | The Chrome extension (load this folder with **Load unpacked**) |
-| `installer/` | `Install Crate Digger.command`: one double-click setup for a Mac; `Turn on auto-updates.command`: for a hand-made setup |
-| `updater/` | `update.sh`: checks this repo's latest release and installs it |
+| `installer/` | `Install Crate Digger.command`: one double-click setup for a Mac |
+| `extras/` | `Turn on auto-updates.command`: auto-updates for a hand-made setup (e.g. Crate Digger on an external drive) |
+| `updater/` | `update.sh`: checks the `updates` branch and installs anything newer |
 | `tools/release.py` | Builds an update and publishes it to the `updates` branch |
 
 ## Installing on a Mac

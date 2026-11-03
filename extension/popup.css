@@ -233,3 +233,12 @@ body.panel .dl-list { flex: 1; max-height: none; min-height: 0; }
 .form label > select { min-width: 0; }
 
 .notes { margin: 0 0 10px; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; }
+
+/* check for updates */
+.upd p { margin: 0 0 10px; font-size: 13px; color: var(--text); }
+.upd .ok-badge, .upd .new-badge { display: inline-flex; width: 20px; height: 20px; border-radius: 50%; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; }
+.upd .ok-badge { background: var(--ok); color: var(--ok-ink); }
+.upd .new-badge { border: 2px solid var(--accent); color: var(--accent); }
+.upd-bad { border-left: 6px double var(--bad); padding-left: 8px; }
+.upd-warn { display: block; padding: 6px 8px; border: 1.5px dashed var(--warn); border-radius: 6px; font-size: 12px; color: var(--text); }
+.upd-log { white-space: pre-wrap; font-size: 11px; background: #0e0e0e; border: 1px solid #2a2a2a; border-radius: 6px; padding: 6px; max-height: 140px; overflow: auto; }

@@ -205,7 +205,8 @@ function openSettings() {
   openIn.value = state.settings.openIn || 'panel';
   const missing = active().tracks.filter(t => !t.genre || !t.label || !t.releaseDate);
   openSheet(
-    h('h3', {}, 'Settings ', h('span', { class: 'muted', style: 'font-weight:400;font-size:12px' }, `· v${chrome.runtime.getManifest().version}, updates itself from GitHub`)),
+    h('h3', {}, 'Settings ', h('span', { class: 'muted', style: 'font-weight:400;font-size:12px' }, `· v${chrome.runtime.getManifest().version}`)),
+    h('div', { class: 'row' }, h('button', { onclick: checkForUpdates }, '⟳ Check for updates')),
     h('div', { class: 'form' },
       h('label', { class: 'check' }, show, h('span', {}, 'Show the floating save button on supported sites')),
       h('label', { class: 'check' }, viewer, h('span', {}, 'Show the YouTube track viewer on Discogs releases')),
@@ -757,6 +758,58 @@ if (IS_PANEL) {
   showWhatsNew();
   await rescan();
 })();
+
+/* ---------- ⟳ Check for updates ---------- */
+const UPDATE_URL = 'https://raw.githubusercontent.com/edenmason/crate-digger/updates/version.json';
+const HELPER = 'com.cratedigger.updater';
+const vparts = v => String(v || '0').split('.').map(n => parseInt(n, 10) || 0);
+const isNewer = (a, b) => { const x = vparts(a), y = vparts(b); for (let i = 0; i < Math.max(x.length, y.length); i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
+async function helperOn() {
+  try { await chrome.runtime.sendNativeMessage(HELPER, { action: 'ping' }); return true; } catch (e) { return false; }
+}
+const HELPER_OFF = 'Switch auto-updates on for this Mac once: double-click “Turn on auto-updates” in your Crate Digger folder (or run “Install Crate Digger” again). After that, updates install themselves, and this button can install them straight away.';
+async function checkForUpdates() {
+  const now = chrome.runtime.getManifest().version;
+  const body = h('div', { class: 'upd' }, h('p', {}, '⟳ Checking GitHub…'));
+  openSheet(h('h3', {}, '⟳ Check for updates'), body, h('div', { class: 'row end' }, h('button', { class: 'ghost', onclick: closeSheet }, 'Close')));
+  let v;
+  try {
+    const r = await fetch(`${UPDATE_URL}?t=${Date.now()}`, { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    v = await r.json();
+  } catch (e) {
+    return body.replaceChildren(h('p', { class: 'upd-bad' }, '✕ Couldn’t reach GitHub. Check the internet connection and try again.'));
+  }
+  const on = await helperOn();
+  const auto = h('p', { class: 'muted' }, on ? '✓ Auto-updates are on for this Mac.' : '⚠ Auto-updates aren’t switched on for this Mac yet.');
+  if (!isNewer(v.extension, now)) {
+    return body.replaceChildren(h('p', { class: 'upd-ok' }, h('span', { class: 'ok-badge' }, '✓'), ` You’re up to date (v${now}).`), auto);
+  }
+  const status = h('p', {});
+  const btn = h('button', { class: 'primary', onclick: install }, `⬆ Update to ${v.extension} now`);
+  body.replaceChildren(
+    h('p', { class: 'upd-new' }, h('span', { class: 'new-badge' }, '⬆'), ' ', h('b', {}, `Version ${v.extension} is available`), ` (you have ${now}).`),
+    (v.notes || []).length ? h('ul', { class: 'notes' }, ...v.notes.map(n => h('li', {}, n))) : null,
+    on ? btn : h('p', { class: 'upd-warn' }, '⚠ ', HELPER_OFF),
+    status);
+  async function install() {
+    btn.disabled = true; btn.textContent = '⟳ Updating…';
+    try {
+      const r = await chrome.runtime.sendNativeMessage(HELPER, { action: 'update' });
+      if (r?.after && isNewer(r.after, now)) {
+        status.replaceChildren(h('b', {}, `✓ Installed ${r.after}.`), ' Crate Digger is restarting. Open the panel again in a moment. Open music sites may need a refresh.');
+        btn.remove();
+        setTimeout(() => chrome.runtime.sendMessage({ type: 'cd-check-files' }), 1500);
+      } else {
+        btn.disabled = false; btn.textContent = `⬆ Try again`;
+        status.replaceChildren(h('span', { class: 'upd-warn' }, '⚠ The updater ran but couldn’t install it this time.'), h('pre', { class: 'upd-log' }, r?.log || '(no details)'));
+      }
+    } catch (e) {
+      btn.remove();
+      status.replaceChildren(h('span', { class: 'upd-warn' }, '⚠ ', HELPER_OFF));
+    }
+  }
+}
 
 /* after an automatic update: say so, with the release notes */
 async function showWhatsNew() {

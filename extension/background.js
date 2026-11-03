@@ -133,6 +133,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, send) => {
       }
       return false;
     }
+    case 'cd-check-files':   // after "Update now": pick up the new files and restart
+      checkForNewFiles(); send({ ok: true });
+      return false;
     case 'cd-enrich':
       for (const id of msg.trackIds) if (!queue.some(([, x]) => x === id)) queue.push([msg.playlistId, id]);
       runQueue();

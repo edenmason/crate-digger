@@ -20,6 +20,7 @@ Download **[Crate-Digger-Installer.zip](../../raw/updates/Crate-Digger-Installer
 
 1. A small background job on each Mac runs `update.sh` every 6 hours and at login. It reads `version.json` from the **`updates` branch**, and if it's newer, downloads `crate-digger-extension.zip` and copies the files into the extension folder (`manifest.json` last).
 2. Crate Digger checks every 15 minutes whether newer files are in its folder, reloads itself, and shows "✓ Updated" with the release notes.
+   **⚙ Settings → ⟳ Check for updates** checks GitHub on demand and can install straight away: the updater registers a small native-messaging helper (`~/.crate-digger/native-host.sh`) that only Crate Digger's extension ID may call, and the button asks it to run `update.sh` now.
 3. Nothing changes on anyone's Mac until an update is **published** to the `updates` branch. The repo is public, so no GitHub account or token is needed on the Macs.
 
 Releases can also bump Sockseek (`"sockseek"` in `version.json`) and the updater itself (`"updater"`).

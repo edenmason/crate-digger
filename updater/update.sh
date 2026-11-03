@@ -12,7 +12,7 @@
 #    update.sh                    this script (so the updater can update itself)
 #  Works with macOS's built-in bash 3.2, curl and unzip. No GitHub account or token needed.
 # ------------------------------------------------------------------
-UPDATER_VERSION="1"
+UPDATER_VERSION="2"
 REPO="${CD_REPO:-edenmason/crate-digger}"
 BASE="${CD_UPDATE_BASE:-https://raw.githubusercontent.com/$REPO/updates}"
 EXT="$1"
@@ -46,6 +46,60 @@ newer() {      # newer A B -> success if version A > version B
   done
   return 1
 }
+
+# ---------- 0. the "Check for updates" helper ----------
+# Chrome can't run programs itself, but it can talk to a small helper registered for Crate Digger's ID only
+# (native messaging). The button in Crate Digger uses it to run this updater straight away.
+ensure_helper() {
+  local NAME="com.cratedigger.updater" ID="mhoonaimgahglpomeilibppkjagipdib"
+  local HDIR="$HOME/.crate-digger" HOST="$HOME/.crate-digger/native-host.sh"
+  mkdir -p "$HDIR"
+  cat > "$TMP/host.sh" <<'HOSTEOF'
+#!/bin/bash
+# Crate Digger: lets the "Check for updates" button run the updater straight away.
+# Chrome starts this and talks to it through stdin/stdout (native messaging). Written by update.sh.
+UPDATER="__UPDATER__"
+EXT="__EXT__"
+SS="__SS__"
+LOG="$HOME/Library/Logs/Crate Digger Updater.log"
+len=$(head -c 4 | od -An -tu4 | tr -d ' \n')
+msg=""
+[ -n "$len" ] && [ "$len" -gt 0 ] 2>/dev/null && msg=$(head -c "$len")
+ver() { sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$EXT/manifest.json" 2>/dev/null | head -1; }
+esc() { sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/	/ /g' | awk 'BEGIN { ORS = "\\n" } { print }'; }
+reply() {
+  local n
+  n=$(printf '%s' "$1" | wc -c | tr -d ' ')
+  printf "$(printf '\\%03o\\%03o\\%03o\\%03o' $((n & 255)) $(((n >> 8) & 255)) $(((n >> 16) & 255)) $(((n >> 24) & 255)))"
+  printf '%s' "$1"
+}
+case "$msg" in
+  *'"update"'*)
+    before=$(ver)
+    start=0; [ -f "$LOG" ] && start=$(wc -l < "$LOG" | tr -d ' ')
+    /bin/bash "$UPDATER" "$EXT" "$SS" >/dev/null 2>&1
+    after=$(ver)
+    lines=""; [ -f "$LOG" ] && lines=$(tail -n +$((start + 1)) "$LOG" | tail -n 8 | esc)
+    reply "{\"ok\":true,\"before\":\"$before\",\"after\":\"$after\",\"log\":\"$lines\"}" ;;
+  *)
+    reply "{\"ok\":true,\"version\":\"$(ver)\"}" ;;
+esac
+HOSTEOF
+  local c; c="$(cat "$TMP/host.sh")"
+  c="${c/__UPDATER__/$SELF}"; c="${c/__EXT__/$EXT}"; c="${c/__SS__/$SS}"
+  printf '%s\n' "$c" > "$TMP/host.sh"
+  if ! cmp -s "$TMP/host.sh" "$HOST"; then cp "$TMP/host.sh" "$HOST" && chmod 755 "$HOST"; fi
+  local J="{\"name\":\"$NAME\",\"description\":\"Crate Digger updater\",\"path\":\"$HOST\",\"type\":\"stdio\",\"allowed_origins\":[\"chrome-extension://$ID/\"]}"
+  local d
+  for d in "${BROWSERS[@]}"; do
+    [ -d "$d" ] || continue
+    mkdir -p "$d/NativeMessagingHosts" && printf '%s\n' "$J" > "$d/NativeMessagingHosts/$NAME.json"
+  done
+}
+if [ -n "$CD_NMH_DIR" ]; then BROWSERS=("$CD_NMH_DIR"); else
+  BROWSERS=("$HOME/Library/Application Support/Google/Chrome" "$HOME/Library/Application Support/Google/Chrome Beta"
+            "$HOME/Library/Application Support/Chromium" "$HOME/Library/Application Support/BraveSoftware/Brave-Browser"); fi
+ensure_helper
 
 if ! curl -fsSL --max-time 30 -o "$TMP/version.json" "$BASE/version.json"; then
   log "Couldn't reach GitHub (offline?). Will try again later."

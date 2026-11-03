@@ -1,8 +1,8 @@
 {
-  "extension": "2.4.0",
+  "extension": "2.5.0",
   "sockseek": "3.0.6",
   "updater": "2",
   "notes": [
-    "⟳ Check for updates button in ⚙ Settings: see if there's a newer version and install it straight away"
+    "▶ YouTube / ♫ YT Music toggle (top of your playlist): choose where the play buttons open, on tracks and in the Discogs viewer. Exact videos open on YouTube Music too."
   ]
 }

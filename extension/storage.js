@@ -5,7 +5,7 @@ var CD = globalThis.CD || (() => {
   const DEFAULT_SETTINGS = {
     discogsToken: '', showButton: true, showViewer: true, openIn: 'panel',
     // Sockseek downloads
-    ssUrl: 'http://127.0.0.1:5030', dlBase: '/Volumes/Seagate/USB Music', dlDateFolders: true, dlQuality: 'lossless', ssHint: '', ytTarget: 'youtube',
+    ssUrl: 'http://127.0.0.1:5030', dlBase: '/Volumes/Seagate/USB Music', dlDateFolders: true, dlPlaylistFolders: true, dlQuality: 'lossless', ssHint: '', ytTarget: 'youtube',
     checkSingle: 'messy', checkPlaylist: true   // check names before downloading: 'messy' | 'always' | 'never'
   };
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);

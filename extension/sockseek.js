@@ -44,10 +44,17 @@ const SS = (() => {
   function localDate(d = new Date()) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
-  function folderFor(settings, d) {
+  /* a playlist name that's safe as a folder name on any drive (exFAT/FAT32 included) */
+  const safeName = n => String(n || '').replace(/[\/\\:*?"<>|\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim()
+    .replace(/^\.+|[. ]+$/g, '').slice(0, 80) || 'Playlist';
+  /* USB Music / 2026-11-03 / TRANCE NIGHT NOV : each part can be switched off in settings */
+  function folderFor(settings, plName, d) {
     const b = String(settings.dlBase || '').trim().replace(/\/+$/, '');
     if (!b) return '';
-    return settings.dlDateFolders !== false ? `${b}/${localDate(d)}` : b;
+    const parts = [b];
+    if (settings.dlDateFolders !== false) parts.push(localDate(d));
+    if (settings.dlPlaylistFolders !== false && plName) parts.push(safeName(plName));
+    return parts.join('/');
   }
   function optionsFor(settings, folder, quality, { album = false } = {}) {
     const q = QUALITY[quality || settings.dlQuality] || QUALITY.lossless;
@@ -73,8 +80,8 @@ const SS = (() => {
   }
   const isRelease = t => t.type === 'release' || (!t.title && t.release);
 
-  async function submit(t, settings, quality) {
-    const folder = folderFor(settings);
+  async function submit(t, settings, quality, plName) {
+    const folder = folderFor(settings, plName);
     const album = isRelease(t);
     const options = optionsFor(settings, folder, quality, { album });
     const s = album
@@ -82,12 +89,12 @@ const SS = (() => {
       : await api('/api/jobs/downloads/song', { songQuery: songQuery(t), options });
     return { summary: s, folder };
   }
-  async function search(t, settings, quality) {
-    const options = optionsFor(settings, folderFor(settings), quality);
+  async function search(t, settings, quality, plName) {
+    const options = optionsFor(settings, folderFor(settings, plName), quality);
     return api('/api/jobs/search/tracks', { songQuery: songQuery(t), options });
   }
-  async function downloadFile(searchJobId, ref, settings, quality) {
-    const folder = folderFor(settings);
+  async function downloadFile(searchJobId, ref, settings, quality, plName) {
+    const folder = folderFor(settings, plName);
     const list = await api(`/api/jobs/${searchJobId}/downloads/files`, { files: [ref], options: optionsFor(settings, folder, quality) });
     return { summary: (list || [])[0], folder };
   }
@@ -117,6 +124,7 @@ const SS = (() => {
     try { started = (await info())?.startedAtUtc || ''; }
     catch (e) { return { sent: 0, skipped: 0, failed: tracks.length, lastErr: e.message, offline: true }; }
     const q = quality || settings.dlQuality;
+    const plName = (await CD.load()).playlists[plId]?.name || '';
     const d = await loadJobs();
     const busy = new Set(d.order.map(id => d.jobs[id]).filter(r => r && !isDone(r.s) && !r.lost).map(r => r.trackId));
     let sent = 0, skipped = 0, failed = 0, lastErr = '', offline = false;
@@ -125,7 +133,7 @@ const SS = (() => {
       onProgress?.(++i, tracks.length);
       if (busy.has(t.id) || (!force && t.dl?.state === 'done') || !(t.artist || t.title || t.release)) { skipped++; continue; }
       try {
-        const { summary, folder } = await submit(t, settings, q);
+        const { summary, folder } = await submit(t, settings, q, plName);
         const lbl = isRelease(t) ? `${t.artist || 'Unknown artist'} – ${t.release || 'Untitled'}` : `${t.artist || 'Unknown artist'} – ${t.title || 'Untitled'}`;
         await addJob({ id: summary.jobId, plId, trackId: t.id, label: lbl, kind: summary.kind, quality: q, folder, ss: started,
           created: Date.now(), s: { life: summary.lifecycleState, phase: summary.activityPhase } });
@@ -277,5 +285,5 @@ const SS = (() => {
   }
 
   return { needsCheck, sendTracks, QUALITY, LOSSLESS, setBase, info, status, getJob, cancel, nextCandidate, results, submit, search, downloadFile,
-    folderFor, localDate, loadJobs, addJob, updateJob, removeJobs, snap, isDone, describe, rate, mb, isRelease };
+    folderFor, safeName, localDate, loadJobs, addJob, updateJob, removeJobs, snap, isDone, describe, rate, mb, isRelease };
 })();

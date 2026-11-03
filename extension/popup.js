@@ -342,6 +342,7 @@ function downloadSettingsFields() {
   dsf = {
     base: h('input', { value: state.settings.dlBase, placeholder: '/Volumes/Seagate/USB Music' }),
     dated: h('input', { type: 'checkbox', checked: state.settings.dlDateFolders !== false }),
+    plf: h('input', { type: 'checkbox', checked: state.settings.dlPlaylistFolders !== false }),
     url: h('input', { value: state.settings.ssUrl, placeholder: 'http://127.0.0.1:5030' }),
     check: h('select', {}, h('option', { value: 'messy' }, 'Only when a name looks messy'), h('option', { value: 'always' }, 'Every time'), h('option', { value: 'never' }, 'Never')),
     review: h('input', { type: 'checkbox', checked: state.settings.checkPlaylist !== false })
@@ -352,6 +353,7 @@ function downloadSettingsFields() {
     h('div', { class: 'form' },
       h('label', {}, h('span', {}, 'Download folder'), dsf.base),
       h('label', { class: 'check' }, dsf.dated, h('span', {}, 'Put each day’s downloads in a dated folder (e.g. 2026-11-03)')),
+      h('label', { class: 'check' }, dsf.plf, h('span', {}, 'Put each playlist in its own folder (inside the day’s folder)')),
       h('label', {}, h('span', {}, 'Sockseek address'), dsf.url),
       h('label', {}, h('span', {}, 'Check names before downloading a track'), dsf.check),
       h('label', { class: 'check' }, dsf.review, h('span', {}, 'Open the review page (spreadsheet) when downloading a whole playlist'))),
@@ -360,7 +362,7 @@ function downloadSettingsFields() {
 }
 function readDownloadSettingsFields() {
   if (!dsf) return {};
-  return { dlBase: dsf.base.value.trim().replace(/\/+$/, ''), dlDateFolders: dsf.dated.checked, ssUrl: dsf.url.value.trim() || 'http://127.0.0.1:5030',
+  return { dlBase: dsf.base.value.trim().replace(/\/+$/, ''), dlDateFolders: dsf.dated.checked, dlPlaylistFolders: dsf.plf.checked, ssUrl: dsf.url.value.trim() || 'http://127.0.0.1:5030',
     checkSingle: dsf.check.value, checkPlaylist: dsf.review.checked };
 }
 function openDownloadSettings() {
@@ -473,7 +475,7 @@ async function downloadPlaylist() {
   const q = SS.QUALITY[$('dlQuality').value] || SS.QUALITY.lossless;
   const ok = await confirmSheet(`Download ${todo.length} track${todo.length === 1 ? '' : 's'} from “${pl.name}”?`, 'Download',
     h('div', { class: 'confirm-facts' },
-      h('div', {}, h('span', { class: 'lbl' }, 'Into'), h('code', {}, SS.folderFor(state.settings))),
+      h('div', {}, h('span', { class: 'lbl' }, 'Into'), h('code', {}, SS.folderFor(state.settings, pl.name))),
       h('div', {}, h('span', { class: 'lbl' }, 'Quality'), q.label),
       done ? h('div', {}, h('span', { class: 'lbl' }, 'Skipping'), `${done} already downloaded`) : null),
     'Sockseek works through them on its own and pauses now and then for Soulseek’s search limit, which is normal. You can close this panel; progress shows again when you reopen it.');
@@ -537,7 +539,7 @@ async function syncTrack(r) {
 function renderDownloads() {
   renderStatus();
   const st = state.settings;
-  $('dlFolder').textContent = SS.folderFor(st) || 'Not set, click ⚙';
+  $('dlFolder').textContent = SS.folderFor(st, active().name) || 'Not set, click ⚙';
   const qs = $('dlQuality');
   if (!qs.options.length) qs.replaceChildren(...Object.entries(SS.QUALITY).map(([k, v]) => h('option', { value: k }, v.label)));
   if (document.activeElement !== qs) qs.value = st.dlQuality || 'lossless';
@@ -646,7 +648,7 @@ async function pickFile(t, plId) {
   async function run() {
     clearTimeout(timer);
     list.replaceChildren(h('div', { class: 'muted' }, 'Searching Soulseek… (this can take up to half a minute)'));
-    try { jobId = (await SS.search(t, state.settings, quality)).jobId; }
+    try { jobId = (await SS.search(t, state.settings, quality, state.playlists[plId]?.name)).jobId; }
     catch (e) { list.replaceChildren(h('div', { class: 'muted' }, 'Search failed: ' + e.message)); return; }
     poll();
   }
@@ -668,7 +670,7 @@ async function pickFile(t, plId) {
     const btn = h('button', { class: 'primary', onclick: async () => {
       btn.disabled = true;
       try {
-        const { summary, folder: dest } = await SS.downloadFile(jobId, c.ref, state.settings, quality);
+        const { summary, folder: dest } = await SS.downloadFile(jobId, c.ref, state.settings, quality, state.playlists[plId]?.name);
         await SS.addJob({ id: summary.jobId, plId, trackId: t.id, label: line(t), pick: name, kind: 'song', quality, folder: dest, picked: true, ss: ssStarted,
           created: Date.now(), s: { life: summary.lifecycleState } });
         await CD.setDownload(plId, t.id, { state: 'queued', jobId: summary.jobId, reason: '' });

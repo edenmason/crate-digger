@@ -162,7 +162,7 @@ async function checkConn() {
   qs.replaceChildren(...Object.entries(SS.QUALITY).map(([k, v]) => h('option', { value: k }, v.label)));
   qs.value = state.settings.dlQuality || 'lossless';
   qs.addEventListener('change', () => CD.saveSettings({ dlQuality: qs.value }));
-  $('folder').textContent = SS.folderFor(state.settings) || 'Not set: choose one in the Download tab’s ⚙';
+  $('folder').textContent = SS.folderFor(state.settings, pl.name) || 'Not set: choose one in the Download tab’s ⚙';
   $('incAll').addEventListener('change', e => { for (const r of rows.filter(shown)) if (!r.busy) { r.inc = e.target.checked; r.cb.checked = r.inc; paintRow(r); } counts(); });
   document.querySelectorAll('.filters button').forEach(b => b.addEventListener('click', () => {
     filter = b.dataset.f; document.querySelectorAll('.filters button').forEach(x => x.classList.toggle('on', x === b)); render();

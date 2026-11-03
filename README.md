@@ -9,17 +9,17 @@ A Chrome extension for digging on Bandcamp, SoundCloud, YouTube and Discogs: sav
 | `extension/` | The Chrome extension (load this folder with **Load unpacked**) |
 | `installer/` | `Install Crate Digger.command`: one double-click setup for a Mac; `Turn on auto-updates.command`: for a hand-made setup |
 | `updater/` | `update.sh`: checks this repo's latest release and installs it |
-| `tools/release.py` | Builds and publishes a release |
+| `tools/release.py` | Builds an update and publishes it to the `updates` branch |
 
 ## Installing on a Mac
 
-Download **Crate-Digger-Installer.zip** from the [latest release](../../releases/latest), unzip it, double-click **Install Crate Digger** and follow the pop-ups. It sets up Crate Digger, Sockseek (started automatically at login) and automatic updates. See `installer/How to install.txt`.
+Download **[Crate-Digger-Installer.zip](../../raw/updates/Crate-Digger-Installer.zip)** (from the `updates` branch), unzip it, double-click **Install Crate Digger** and follow the pop-ups. It sets up Crate Digger, Sockseek (started automatically at login) and automatic updates. See `installer/How to install.txt`.
 
 ## How updates work
 
-1. A small background job on each Mac runs `update.sh` every 6 hours and at login. It reads `version.json` from the **latest release**, and if it's newer, downloads `crate-digger-extension.zip` and copies the files into the extension folder (`manifest.json` last).
+1. A small background job on each Mac runs `update.sh` every 6 hours and at login. It reads `version.json` from the **`updates` branch**, and if it's newer, downloads `crate-digger-extension.zip` and copies the files into the extension folder (`manifest.json` last).
 2. Crate Digger checks every 15 minutes whether newer files are in its folder, reloads itself, and shows "✓ Updated" with the release notes.
-3. Nothing changes on anyone's Mac until a **release is published**. The repo is public, so no GitHub account or token is needed on the Macs.
+3. Nothing changes on anyone's Mac until an update is **published** to the `updates` branch. The repo is public, so no GitHub account or token is needed on the Macs.
 
 Releases can also bump Sockseek (`"sockseek"` in `version.json`) and the updater itself (`"updater"`).
 

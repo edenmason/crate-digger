@@ -6,7 +6,7 @@
 #
 #  update.sh "<Crate Digger extension folder>" ["<Sockseek folder>"]
 #
-#  Release assets it reads (from the repo's *latest* GitHub release):
+#  Files it reads, from the repo's "updates" branch (only changed when an update is published):
 #    version.json                 {"extension":"2.3.0","sockseek":"3.0.6","updater":"1","notes":[...]}
 #    crate-digger-extension.zip   the extension's files
 #    update.sh                    this script (so the updater can update itself)
@@ -14,7 +14,7 @@
 # ------------------------------------------------------------------
 UPDATER_VERSION="1"
 REPO="${CD_REPO:-edenmason/crate-digger}"
-BASE="${CD_UPDATE_BASE:-https://github.com/$REPO/releases/latest/download}"
+BASE="${CD_UPDATE_BASE:-https://raw.githubusercontent.com/$REPO/updates}"
 EXT="$1"
 SS="$2"
 SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"

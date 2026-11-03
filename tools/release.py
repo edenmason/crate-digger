@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Build and publish a Crate Digger release to GitHub.
+"""Build and publish a Crate Digger update (to the repo's "updates" branch).
 
   python3 tools/release.py "What changed, line 1" "line 2" ...      # build dist/ and publish
   python3 tools/release.py --build-only "notes"                       # just build dist/
 
 Assets: version.json, crate-digger-extension.zip, update.sh, Crate-Digger-Installer.zip
-The updater on each Mac reads releases/latest, so publishing is what ships an update.
+The updater on each Mac reads the updates branch, so publishing is what ships an update.
 """
 import json, os, re, shutil, subprocess, sys, zipfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -41,18 +41,41 @@ shutil.copy(os.path.join(ROOT, 'updater', 'update.sh'), dist)
 json.dump({'extension': version, 'sockseek': SOCKSEEK, 'updater': updater_v, 'notes': notes},
           open(os.path.join(dist, 'version.json'), 'w'), indent=2, ensure_ascii=False)
 print('built', version, '->', sorted(os.listdir(dist)))
+body = '\n'.join(f'- {n}' for n in notes) or 'Updates and fixes.'
 if build_only: sys.exit(0)
 
-def gh(*a, inp=None):
-    r = subprocess.run(['gh', 'api', *a], input=inp, capture_output=True)
-    if r.returncode: raise SystemExit(r.stderr.decode() or r.stdout.decode())
-    return json.loads(r.stdout or b'{}')
-body = '\n'.join(f'- {n}' for n in notes) or 'Updates and fixes.'
-rel = gh('--method', 'POST', f'repos/{REPO}/releases', '-f', f'tag_name=v{version}', '-f', 'target_commitish=main',
-         '-f', f'name=Crate Digger {version}', '-f', f'body={body}')
-for f in ['version.json', 'crate-digger-extension.zip', 'update.sh', 'Crate-Digger-Installer.zip']:
-    ctype = 'application/json' if f.endswith('.json') else 'application/zip' if f.endswith('.zip') else 'text/x-shellscript'
-    gh('--method', 'POST', '-H', f'Content-Type: {ctype}', f"https://uploads.github.com/repos/{REPO}/releases/{rel['id']}/assets?name={f}",
-       '--input', os.path.join(dist, f))
-    print('uploaded', f)
-print('released', rel['html_url'])
+# Publish: commit dist/ to the "updates" branch. The updater on each Mac reads that branch.
+import tempfile
+def git(*a, cwd=ROOT):
+    r = subprocess.run(['git', *a], cwd=cwd, capture_output=True, text=True)
+    if r.returncode: raise SystemExit(f"git {' '.join(a)} failed:\n{r.stderr or r.stdout}")
+    return r.stdout.strip()
+wt = tempfile.mkdtemp(prefix='cd-updates-')
+has_branch = subprocess.run(['git', 'ls-remote', '--exit-code', 'origin', 'updates'], cwd=ROOT, capture_output=True).returncode == 0
+if has_branch:
+    git('fetch', '-q', 'origin', 'updates:refs/remotes/origin/updates')
+    git('worktree', 'add', '-q', '-B', 'updates', wt, 'origin/updates')
+else:
+    git('worktree', 'add', '-q', '--detach', wt)
+    git('checkout', '-q', '--orphan', 'updates', cwd=wt)
+    git('rm', '-rfq', '.', cwd=wt)
+for f in os.listdir(wt):
+    if f != '.git': (shutil.rmtree if os.path.isdir(os.path.join(wt, f)) else os.remove)(os.path.join(wt, f))
+for f in os.listdir(dist): shutil.copy(os.path.join(dist, f), wt)
+open(os.path.join(wt, 'README.md'), 'w').write(f"""# Crate Digger updates
+
+This branch holds the **published** version of Crate Digger. The updater on each Mac checks `version.json` here
+every few hours and installs anything newer. Don't edit by hand; `tools/release.py` on `main` writes it.
+
+**Current version: {version}**
+
+{body}
+
+To install on a new Mac: download [Crate-Digger-Installer.zip](https://github.com/{REPO}/raw/updates/Crate-Digger-Installer.zip),
+unzip it and double-click **Install Crate Digger**.
+""")
+git('add', '-A', cwd=wt)
+git('commit', '-q', '-m', f'Publish Crate Digger {version}\n\n{body}\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\nClaude-Session: https://claude.ai/code/session_01Njrh59FsUXpibw1tCPuikF', cwd=wt)
+git('push', '-q', 'origin', 'HEAD:updates', cwd=wt)
+git('worktree', 'remove', '--force', wt)
+print(f'published {version} to the "updates" branch: https://github.com/{REPO}/tree/updates')

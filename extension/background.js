@@ -1,5 +1,5 @@
 /* Crate Digger — background service worker */
-importScripts('storage.js');
+importScripts('storage.js', 'sockseek.js');
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -136,6 +136,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, send) => {
     case 'cd-check-files':   // after "Update now": pick up the new files and restart
       checkForNewFiles(); send({ ok: true });
       return false;
+    case 'cd-dl-kick':
+      drive(); send({ ok: true });
+      return false;
     case 'cd-enrich':
       for (const id of msg.trackIds) if (!queue.some(([, x]) => x === id)) queue.push([msg.playlistId, id]);
       runQueue();
@@ -164,3 +167,19 @@ chrome.alarms.create('cd-update-check', { periodInMinutes: 15 });
 chrome.alarms.onAlarm.addListener(a => { if (a.name === 'cd-update-check') checkForNewFiles(); });
 chrome.runtime.onStartup.addListener(checkForNewFiles);
 checkForNewFiles();
+
+/* ---------- downloads ----------
+   Every download is driven from here, so it carries on with the panel closed (as long as Chrome is open):
+   searching, picking the best file, moving on when one fails, waiting on slow users, searching again later. */
+let driving = false;
+async function drive() {
+  if (driving) return;
+  driving = true;
+  try { while (await SS.tick()) await sleep(2000); }
+  catch (e) { console.warn('Crate Digger downloads', e); }
+  finally { driving = false; }
+}
+chrome.alarms.create('cd-downloads', { periodInMinutes: 0.5 });
+chrome.alarms.onAlarm.addListener(a => { if (a.name === 'cd-downloads') drive(); });
+chrome.runtime.onStartup.addListener(drive);
+drive();

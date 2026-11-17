@@ -42,7 +42,7 @@ Both use YouTube Premium. Non-technical end users: anything they touch must be d
 - **Title tidy** (`CD.tidy`): moves cat numbers, `[labels]`, years, junk (`[FREE]`, `(PREVIEW)`, `.mp3`), leading track
   numbers out of titles; keeps mix names. Searches always use the tidy version. New saves are tidied automatically.
 - **Saved check** (`CD.findSaved`): across all playlists, by single-track URL / YouTube video / artist+title (after tidy).
-- **Downloads**: one Sockseek job per track (album job for releases). Folder = `dlBase / YYYY-MM-DD / <playlist>`
+- **Downloads**: single tracks are Crate Digger *tasks* (`SS.tick`, driven by `background.js` every 2 s while busy, alarm every 30 s): search (`SS.queriesFor`: full → first artist → title only), rank (`SS.rank`/`SS.matchFile`: title words in filename, an artist in path, named mix required, plain title rejects other remixes; FLAC=WAV → AIFF → MP3; likely fakes last), download one file at a time with `maxStaleTime` = never, hard fail → next file (user skipped for the round), list used up → re-search every 30 min forever. "Choose a file myself" makes a pinned task. Releases are still one Sockseek album job each (also no stale limit; resubmitted after a Sockseek restart). Folder = `dlBase / YYYY-MM-DD / <playlist>`
   (`SS.folderFor`, both parts switchable). Length is a *preference* (`lengthTolerance: -1` necessary, `3` preferred),
   so extended mixes/edits still download. Lossless-only by default. File names `{artist( - )title|filename}` so a
   mix name is never hidden; releases keep Sockseek's default naming.

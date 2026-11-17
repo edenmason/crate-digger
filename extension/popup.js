@@ -325,7 +325,7 @@ chrome.storage.onChanged.addListener((ch, area) => {
 /* =====================================================================
    Download tab — drives `sockseek daemon` on this Mac
    ===================================================================== */
-let dl = { jobs: {}, order: [] }, ssOnline = null, ssVersion = '', ssStarted = '', pollTimer = null, connTimer = null, curTab = 'dig';
+let dl = { jobs: {}, order: [] }, ssOnline = null, ssVersion = '', ssStarted = '', connTimer = null, curTab = 'dig';
 
 function dlBadge(t) {
   const d = t.dl;
@@ -384,7 +384,7 @@ async function checkConnection() {
   try { const i = await SS.info(); ssOnline = true; ssVersion = String(i?.version || '').replace(/\.0$/, ''); ssStarted = i?.startedAtUtc || ''; }
   catch (e) { ssOnline = false; }
   if (was !== ssOnline) renderDownloads(); else renderStatus();
-  if (ssOnline && !pollTimer && !polling && hasLive()) pollNow();
+  if (ssOnline && !was && hasLive()) pollNow();
 }
 function renderStatus() {
   const box = $('ssStatus');
@@ -482,58 +482,9 @@ async function downloadPlaylist() {
   if (ok) await startDownloads(todo, { checked: true });
 }
 
-/* ---- polling ---- */
+/* ---- downloads run in the background worker (SS.tick); the panel just shows them ---- */
 const hasLive = () => dl.order.some(id => { const r = dl.jobs[id]; return r && !SS.isDone(r.s) && !r.lost && r.kind !== 'search'; });
-let polling = false, pollAgain = false;
-async function pollNow() {
-  if (polling) { pollAgain = true; return; }
-  polling = true;
-  try { await pollOnce(); } finally { polling = false; }
-  if (pollAgain) { pollAgain = false; pollNow(); }
-}
-async function pollOnce() {
-  clearTimeout(pollTimer); pollTimer = null;
-  dl = await SS.loadJobs();
-  const live = dl.order.map(id => dl.jobs[id]).filter(r => r && !SS.isDone(r.s) && !r.lost && r.kind !== 'search');
-  let offline = false;
-  for (const r of live) {
-    try {
-      const s = SS.snap(await SS.getJob(r.id));
-      await SS.updateJob(r.id, { s, misses: 0, firstMiss: 0 });
-      if (SS.isDone(s)) await syncTrack({ ...r, s });
-      else if (s.life === 'Running') await markTrack(r, { state: 'running' });
-    } catch (e) {
-      if (e.notFound) {
-        // Only give up on a job if Sockseek really restarted (its start time changed), or it's been missing for over a minute.
-        const misses = (r.misses || 0) + 1;
-        const restarted = ssStarted && r.ss && r.ss !== ssStarted;
-        if (restarted || (misses >= 5 && Date.now() - (r.firstMiss || Date.now()) > 60000)) {
-          await SS.updateJob(r.id, { lost: true }); await markTrack(r, { state: 'failed', reason: 'Sockseek was restarted' });
-        } else await SS.updateJob(r.id, { misses, firstMiss: r.firstMiss || Date.now() });
-      }
-      else if (e.offline) { offline = true; break; }
-    }
-  }
-  if (offline && ssOnline) { ssOnline = false; renderStatus(); }
-  dl = await SS.loadJobs();
-  renderDownloads();
-  if (hasLive() && !offline) pollTimer = setTimeout(pollNow, 1500);
-}
-async function markTrack(r, patch) {
-  const t = state.playlists[r.plId]?.tracks.find(x => x.id === r.trackId);
-  if (!t || t.dl?.jobId !== r.id || t.dl?.state === patch.state) return;
-  await CD.setDownload(r.plId, r.trackId, patch);
-}
-async function syncTrack(r) {
-  const s = r.s;
-  const t = state.playlists[r.plId]?.tracks.find(x => x.id === r.trackId);
-  if (!t || (t.dl?.jobId && t.dl.jobId !== r.id && t.dl.state === 'done')) return;
-  if (s.outcome === 'Succeeded' || (s.outcome === 'Skipped' && s.skip === 'AlreadyExists') || s.outcome === 'PartialSuccess')
-    await CD.setDownload(r.plId, r.trackId, { state: 'done', jobId: r.id, path: s.path || r.folder, ext: s.ext, size: s.size, at: Date.now(), reason: '' });
-  else if (s.outcome !== 'Cancelled')
-    await CD.setDownload(r.plId, r.trackId, { state: 'failed', jobId: r.id, reason: SS.describe(r).text });
-  else await CD.setDownload(r.plId, r.trackId, null);
-}
+const pollNow = () => SS.kick();
 
 /* ---- rendering ---- */
 function renderDownloads() {
@@ -601,8 +552,10 @@ function rowFor({ r, d, live, earlier, all }) {
   const t = state.playlists[r.plId]?.tracks.find(x => x.id === r.trackId);
   const title = t ? line(t) : r.label;
   const acts = [];
-  if (live && r.s.phase === 'Downloading') acts.push(h('button', { title: 'Stop this download and try the next-best file', onclick: () => act(() => SS.nextCandidate(r.id), 'Trying the next file…') }, 'Try another file'));
-  if (live) acts.push(h('button', { title: 'Cancel', onclick: () => act(() => SS.cancel(r.id), 'Cancelled') }, 'Cancel'));
+  if (live && (r.task ? d.next && !r.pin : r.s.phase === 'Downloading')) acts.push(h('button', { title: 'Stop this download and try the next-best file',
+    onclick: () => act(() => r.task ? SS.command(r.id, 'next') : SS.nextCandidate(r.id), 'Trying the next file…') }, 'Try another file'));
+  if (live && d.again) acts.push(h('button', { title: 'Search Soulseek again now instead of waiting', onclick: () => act(() => SS.command(r.id, 'again'), 'Searching again…') }, '↻ Search again now'));
+  if (live) acts.push(h('button', { title: 'Stop this download', onclick: () => act(() => r.task ? SS.command(r.id, 'stop') : SS.cancel(r.id), 'Cancelled') }, 'Cancel'));
   if (!live && t && (d.canPick || r.lost || d.cls !== 'ok')) acts.push(h('button', { class: 'act-main', onclick: () => pickFile(t, r.plId) }, '⌕ Choose a file myself…'));
   if (!live && t && d.cls !== 'ok') acts.push(h('button', { onclick: () => startDownloads([t], { force: true }) }, '↻ Retry'));
   if (!live && t && d.canPick && r.quality === 'lossless') acts.push(h('button', { title: 'Try again allowing MP3 320', onclick: () => startDownloads([t], { force: true, quality: 'lossless320' }) }, '↻ Retry, allow MP3 320'));
@@ -629,9 +582,12 @@ async function act(fn, msg) {
   try { await fn(); snack(msg); } catch (e) { snack(e.message, true); }
   pollNow();
 }
-// tick once a second so the search-limit countdown moves
+// tick once a second so the search-limit countdown moves (and the "waiting 12 min" counters every 15 s)
+let tickN = 0;
 setInterval(() => {
-  if (curTab === 'dl' && dl.order.some(id => dl.jobs[id]?.s?.phase === 'SearchRateLimited' && !SS.isDone(dl.jobs[id].s))) renderDownloads();
+  if (curTab !== 'dl') return;
+  const liveJobs = dl.order.map(id => dl.jobs[id]).filter(r => r && !SS.isDone(r.s) && !r.lost);
+  if (liveJobs.some(r => r.s?.phase === 'SearchRateLimited') || (++tickN % 15 === 0 && liveJobs.some(r => r.task))) renderDownloads();
 }, 1000);
 
 /* ---- choose a file yourself ---- */
@@ -639,7 +595,7 @@ async function pickFile(t, plId) {
   await checkConnection();
   if (!ssOnline) return snack('Start Sockseek first', true);
   let quality = state.settings.dlQuality === 'any' ? 'any' : 'lossless', jobId = null, stop = false, timer = null;
-  const wantLen = CD.lengthSecs(t.length) || 0;
+  const wantLen = CD.lengthSecs(t.length) || 0, want = SS.wantFor(t);
   const list = h('div', { class: 'cands' }, h('div', { class: 'muted' }, 'Searching Soulseek… (this can take up to half a minute)'));
   const head = h('div', { class: 'muted' });
   const showAll = h('input', { type: 'checkbox', checked: quality === 'any' });
@@ -656,7 +612,7 @@ async function pickFile(t, plId) {
     if (stop) return;
     let r;
     try { r = await SS.results(jobId); } catch (e) { r = null; }
-    const items = (r?.items || []).map(c => ({ c, q: SS.rate(c, wantLen) })).sort((a, b) => b.q.score - a.q.score);
+    const items = (r?.items || []).map(c => ({ c, q: SS.rate(c, wantLen, want) })).sort((a, b) => b.q.score - a.q.score);
     head.textContent = r?.isComplete ? `${items.length} file${items.length === 1 ? '' : 's'} found` : `Searching… ${items.length} so far`;
     if (items.length) list.replaceChildren(...items.slice(0, 60).map(({ c, q }) => cand(c, q)));
     else if (r?.isComplete) list.replaceChildren(h('div', { class: 'muted' }, quality === 'any' ? 'Nothing found on Soulseek.' : 'No lossless files found. Tick “Show MP3s and other formats” to see everything.'));
@@ -670,11 +626,8 @@ async function pickFile(t, plId) {
     const btn = h('button', { class: 'primary', onclick: async () => {
       btn.disabled = true;
       try {
-        const { summary, folder: dest } = await SS.downloadFile(jobId, c.ref, state.settings, quality, state.playlists[plId]?.name);
-        await SS.addJob({ id: summary.jobId, plId, trackId: t.id, label: line(t), pick: name, kind: 'song', quality, folder: dest, picked: true, ss: ssStarted,
-          created: Date.now(), s: { life: summary.lifecycleState } });
-        await CD.setDownload(plId, t.id, { state: 'queued', jobId: summary.jobId, reason: '' });
-        close(); switchTab('dl'); pollNow(); snack('Downloading your pick');
+        await SS.sendPick(t, plId, c, jobId, state.settings, quality, state.playlists[plId]?.name, ssStarted);
+        close(); switchTab('dl'); snack('Downloading your pick');
       } catch (e) { btn.disabled = false; snack(e.message, true); }
     } }, 'Download');
     return h('div', { class: 'cand' + (q.lossless ? ' ll' : '') },
@@ -721,7 +674,6 @@ chrome.storage.onChanged.addListener((ch, area) => {
   if (area === 'local' && ch.cd_dl) {
     dl = ch.cd_dl.newValue || { jobs: {}, order: [] };
     if (curTab === 'dl') renderDownloads();
-    if (!pollTimer && !polling && hasLive()) pollNow();
   }
   if (area === 'local' && ch.cd_open_tab?.newValue) { switchTab(ch.cd_open_tab.newValue); chrome.storage.local.remove('cd_open_tab'); }
 });
